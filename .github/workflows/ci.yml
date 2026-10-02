@@ -1,0 +1,40 @@
+﻿name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        database: [sqlserver, oracle]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test (${{ matrix.database }})
+        run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=results-${{ matrix.database }}.trx" --results-directory ./TestResults
+        env:
+          BillingEngine__Database: ${{ matrix.database }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.database }}
+          path: ./TestResults/*.trx
