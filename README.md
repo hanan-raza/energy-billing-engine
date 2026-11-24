@@ -2,7 +2,7 @@
 
 > C# billing engine for energy customers with Oracle and SQL Server support, traceable invoice calculation trees, and dynamic tariff comparison.
 
-![CI](https://github.com/hananraza432/energy-billing-engine/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/hanan-raza/energy-billing-engine/actions/workflows/ci.yml/badge.svg)
 
 ---
 
