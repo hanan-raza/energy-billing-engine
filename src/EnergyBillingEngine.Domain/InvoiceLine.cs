@@ -9,13 +9,17 @@ public sealed class InvoiceLine
     /// <summary>Maximum length of <see cref="Unit"/>.</summary>
     public const int UnitMaxLength = 10;
 
-    internal InvoiceLine(InvoiceLineType type, string description, decimal quantity, string unit, Money unitPrice)
+    internal InvoiceLine(int position, InvoiceLineType type, string description, decimal quantity, string unit, Money unitPrice)
     {
+        Position = position;
         ArgumentNullException.ThrowIfNull(unitPrice);
         if (!Enum.IsDefined(type))
         {
             throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown invoice line type.");
         }
+
+        Precision.EnsurePrice(unitPrice, nameof(unitPrice));
+        Precision.EnsureQuantity(quantity, nameof(quantity));
 
         Type = type;
         Description = Text.Required(description, DescriptionMaxLength, nameof(description));
@@ -34,6 +38,9 @@ public sealed class InvoiceLine
 
     /// <summary>Technical key.</summary>
     public Guid Id { get; private set; }
+
+    /// <summary>Line number on the invoice (Positionsnummer), starting at 1.</summary>
+    public int Position { get; private set; }
 
     /// <summary>What the line charges for.</summary>
     public InvoiceLineType Type { get; private set; }

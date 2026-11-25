@@ -92,5 +92,7 @@ public sealed class Tariff
         {
             throw new ArgumentException($"A price must not be negative ({price}).", parameterName);
         }
+
+        Precision.EnsurePrice(price, parameterName);
     }
 }

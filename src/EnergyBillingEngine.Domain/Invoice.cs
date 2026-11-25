@@ -60,7 +60,8 @@ public sealed class Invoice
     public string Currency { get; private set; } = Money.Euro;
 
     /// <summary>Lines in the order they were added.</summary>
-    public IReadOnlyList<InvoiceLine> Lines => _lines;
+    /// <remarks>Sorted by <see cref="InvoiceLine.Position"/>, because a database returns rows in no guaranteed order.</remarks>
+    public IReadOnlyList<InvoiceLine> Lines => [.. _lines.OrderBy(l => l.Position)];
 
     /// <summary>Sum of the (already rounded) line amounts.</summary>
     public Money NetTotal => Money.Sum(_lines.Select(l => l.Amount), Currency);
@@ -75,7 +76,7 @@ public sealed class Invoice
             throw new ArgumentException($"The invoice is in {Currency}, the price in {unitPrice.Currency}.", nameof(unitPrice));
         }
 
-        var line = new InvoiceLine(type, description, quantity, unit, unitPrice);
+        var line = new InvoiceLine(_lines.Count + 1, type, description, quantity, unit, unitPrice);
         _lines.Add(line);
         return line;
     }

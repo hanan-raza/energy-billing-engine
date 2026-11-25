@@ -29,13 +29,43 @@ public sealed class InvoiceTests
     public void Net_total_is_the_sum_of_the_rounded_lines()
     {
         var invoice = new Invoice("R-3001", MarchToDecember(), BillingPeriod.Month(2026, 3));
-        invoice.AddLine(InvoiceLineType.BasePrice, "Base price 31 days", 31m, "days", Money.Eur(120m / 365m));
+        var basePricePerDay = Money.Eur(120m / 365m).Round(Precision.PriceDecimals, MidpointRounding.AwayFromZero);
+        invoice.AddLine(InvoiceLineType.BasePrice, "Base price 31 days", 31m, "days", basePricePerDay);
         invoice.AddLine(InvoiceLineType.Energy, "Energy", 312.457m, "kWh", Money.Eur(0.324517m));
         invoice.AddLine(InvoiceLineType.Levy, "Electricity tax", 312.457m, "kWh", Money.Eur(0.0205m));
 
-        // 31 × 0.328767… = 10.19, 101.40, 312.457 × 0.0205 = 6.405… → 6.41
+        // 31 × 0.328767 = 10.191777 → 10.19, 101.40, 312.457 × 0.0205 = 6.4053685 → 6.41
         invoice.NetTotal.ShouldBe(Money.Eur(10.19m + 101.40m + 6.41m));
         invoice.NetTotal.ShouldBe(Money.Sum(invoice.Lines.Select(l => l.Amount), Money.Euro));
+    }
+
+    [Fact]
+    public void A_unit_price_with_more_places_than_the_database_stores_is_refused()
+    {
+        // The column would round 120/365 to 0.328767 silently, and the stored line would no longer
+        // multiply out to its own amount.
+        var invoice = new Invoice("R-3001", MarchToDecember(), BillingPeriod.Month(2026, 3));
+
+        Should.Throw<ArgumentException>(() =>
+            invoice.AddLine(InvoiceLineType.BasePrice, "Base price", 31m, "days", Money.Eur(120m / 365m)));
+    }
+
+    [Fact]
+    public void A_quantity_with_more_than_five_places_is_refused()
+    {
+        var invoice = new Invoice("R-3001", MarchToDecember(), BillingPeriod.Month(2026, 3));
+
+        Should.Throw<ArgumentException>(() =>
+            invoice.AddLine(InvoiceLineType.Energy, "Energy", 0.123456m, "kWh", Money.Eur(0.30m)));
+    }
+
+    [Fact]
+    public void Trailing_zeros_do_not_count_as_places()
+    {
+        var invoice = new Invoice("R-3001", MarchToDecember(), BillingPeriod.Month(2026, 3));
+
+        Should.NotThrow(() =>
+            invoice.AddLine(InvoiceLineType.Energy, "Energy", 1.1000000m, "kWh", Money.Eur(0.300000000m)));
     }
 
     [Fact]
@@ -77,5 +107,6 @@ public sealed class InvoiceTests
         invoice.AddLine(InvoiceLineType.BasePrice, "Base price", 1m, "days", Money.Eur(0.33m));
 
         invoice.Lines.Select(l => l.Type).ShouldBe([InvoiceLineType.Energy, InvoiceLineType.BasePrice]);
+        invoice.Lines.Select(l => l.Position).ShouldBe([1, 2]);
     }
 }

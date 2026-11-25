@@ -16,6 +16,7 @@ public sealed class Levy
     public Levy(LevyType type, Money ratePerKwh, DateOnly validFrom, DateOnly? validTo = null)
     {
         ArgumentNullException.ThrowIfNull(ratePerKwh);
+        Precision.EnsurePrice(ratePerKwh, nameof(ratePerKwh));
         if (!Enum.IsDefined(type))
         {
             throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown levy type.");

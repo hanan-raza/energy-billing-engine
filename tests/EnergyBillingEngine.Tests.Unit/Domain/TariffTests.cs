@@ -95,6 +95,14 @@ public sealed class TariffTests
     }
 
     [Fact]
+    public void Prices_with_more_than_six_places_are_refused()
+    {
+        Should.Throw<ArgumentException>(() => new Tariff("Too precise", Money.Eur(120m), Money.Eur(0.3245171m)));
+        Should.Throw<ArgumentException>(() =>
+            Basic().AddTimeOfUseBand("NT", new TimeOnly(22, 0), new TimeOnly(6, 0), Money.Eur(0.2200001m)));
+    }
+
+    [Fact]
     public void A_zero_base_price_is_allowed()
     {
         // Some products, e.g. dynamic tariffs, have no base price.
