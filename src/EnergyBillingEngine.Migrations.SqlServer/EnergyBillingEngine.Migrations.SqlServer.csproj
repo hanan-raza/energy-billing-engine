@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- EF Core migrations are provider-specific SQL, so each provider keeps its own set.
+       Infrastructure selects this assembly by name in UseBillingStore. -->
+  <ItemGroup>
+    <ProjectReference Include="..\EnergyBillingEngine.Infrastructure\EnergyBillingEngine.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

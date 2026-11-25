@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
+namespace EnergyBillingEngine.Migrations.SqlServer.Migrations
 {
     /// <inheritdoc />
     public partial class InitialSchema : Migration

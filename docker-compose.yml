@@ -22,6 +22,9 @@ services:
     profiles: ["oracle"]
     environment:
       ORACLE_PASSWORD: "Billing_Dev_2026!"
+      # Creates the application schema in the FREEPDB1 pluggable database on first start.
+      APP_USER: billing
+      APP_USER_PASSWORD: "Billing_Dev_2026!"
     ports:
       - "1521:1521"
     volumes:

@@ -22,6 +22,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\EnergyBillingEngine.Domain\EnergyBillingEngine.Domain.csproj" />
     <ProjectReference Include="..\..\src\EnergyBillingEngine.Infrastructure\EnergyBillingEngine.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\EnergyBillingEngine.Migrations.SqlServer\EnergyBillingEngine.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\..\src\EnergyBillingEngine.Migrations.Oracle\EnergyBillingEngine.Migrations.Oracle.csproj" />
   </ItemGroup>
 
 </Project>

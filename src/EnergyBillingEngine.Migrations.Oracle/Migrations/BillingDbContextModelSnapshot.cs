@@ -4,12 +4,12 @@ using System.Collections.Generic;
 using EnergyBillingEngine.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Oracle.EntityFrameworkCore.Metadata;
 
 #nullable disable
 
-namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
+namespace EnergyBillingEngine.Migrations.Oracle.Migrations
 {
     [DbContext(typeof(BillingDbContext))]
     partial class BillingDbContextModelSnapshot : ModelSnapshot
@@ -21,38 +21,38 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            OracleModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("EnergyBillingEngine.Domain.Contract", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
                     b.Property<string>("ContractNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("VARCHAR2(20)");
 
                     b.Property<Guid>("CustomerId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
-                    b.Property<DateOnly?>("EndDate")
-                        .HasColumnType("date");
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("DATE");
 
                     b.Property<string>("MarketLocationId")
                         .IsRequired()
                         .HasMaxLength(11)
                         .IsUnicode(false)
-                        .HasColumnType("char(11)")
+                        .HasColumnType("CHAR(11)")
                         .IsFixedLength();
 
-                    b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date");
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("DATE");
 
                     b.Property<Guid>("TariffId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
                     b.HasKey("Id");
 
@@ -72,18 +72,18 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
                     b.Property<string>("CustomerNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("VARCHAR2(20)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("NVARCHAR2(200)");
 
                     b.HasKey("Id");
 
@@ -97,34 +97,34 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
                     b.Property<Guid>("ContractId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("char(3)")
+                        .HasColumnType("CHAR(3)")
                         .IsFixedLength();
 
                     b.Property<string>("InvoiceNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("VARCHAR2(20)");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Period", "EnergyBillingEngine.Domain.Invoice.Period#BillingPeriod", b1 =>
                         {
                             b1.IsRequired();
 
-                            b1.Property<DateOnly>("End")
-                                .HasColumnType("date")
+                            b1.Property<DateTime>("End")
+                                .HasColumnType("DATE")
                                 .HasColumnName("PeriodEnd");
 
-                            b1.Property<DateOnly>("Start")
-                                .HasColumnType("date")
+                            b1.Property<DateTime>("Start")
+                                .HasColumnType("DATE")
                                 .HasColumnName("PeriodStart");
                         });
 
@@ -142,33 +142,33 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("NVARCHAR2(200)");
 
                     b.Property<Guid>("InvoiceId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
                     b.Property<int>("Position")
-                        .HasColumnType("int");
+                        .HasColumnType("NUMBER(10)");
 
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 5)
-                        .HasColumnType("decimal(18,5)");
+                        .HasColumnType("DECIMAL(18,5)");
 
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(16)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(16)");
+                        .HasColumnType("VARCHAR2(16)");
 
                     b.Property<string>("Unit")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("NVARCHAR2(10)");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Amount", "EnergyBillingEngine.Domain.InvoiceLine.Amount#Money", b1 =>
                         {
@@ -176,14 +176,14 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
 
                             b1.Property<decimal>("Amount")
                                 .HasPrecision(18, 2)
-                                .HasColumnType("decimal(18,2)")
+                                .HasColumnType("DECIMAL(18,2)")
                                 .HasColumnName("Amount");
 
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
                                 .IsUnicode(false)
-                                .HasColumnType("char(3)")
+                                .HasColumnType("CHAR(3)")
                                 .HasColumnName("AmountCurrency")
                                 .IsFixedLength();
                         });
@@ -194,14 +194,14 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
 
                             b1.Property<decimal>("Amount")
                                 .HasPrecision(18, 6)
-                                .HasColumnType("decimal(18,6)")
+                                .HasColumnType("DECIMAL(18,6)")
                                 .HasColumnName("UnitPrice");
 
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
                                 .IsUnicode(false)
-                                .HasColumnType("char(3)")
+                                .HasColumnType("CHAR(3)")
                                 .HasColumnName("UnitPriceCurrency")
                                 .IsFixedLength();
                         });
@@ -218,19 +218,19 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(32)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(32)");
+                        .HasColumnType("VARCHAR2(32)");
 
-                    b.Property<DateOnly>("ValidFrom")
-                        .HasColumnType("date");
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("DATE");
 
-                    b.Property<DateOnly?>("ValidTo")
-                        .HasColumnType("date");
+                    b.Property<DateTime?>("ValidTo")
+                        .HasColumnType("DATE");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "RatePerKwh", "EnergyBillingEngine.Domain.Levy.RatePerKwh#Money", b1 =>
                         {
@@ -238,14 +238,14 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
 
                             b1.Property<decimal>("Amount")
                                 .HasPrecision(18, 6)
-                                .HasColumnType("decimal(18,6)")
+                                .HasColumnType("DECIMAL(18,6)")
                                 .HasColumnName("RatePerKwh");
 
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
                                 .IsUnicode(false)
-                                .HasColumnType("char(3)")
+                                .HasColumnType("CHAR(3)")
                                 .HasColumnName("RatePerKwhCurrency")
                                 .IsFixedLength();
                         });
@@ -261,12 +261,12 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("NVARCHAR2(100)");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "BasePricePerYear", "EnergyBillingEngine.Domain.Tariff.BasePricePerYear#Money", b1 =>
                         {
@@ -274,14 +274,14 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
 
                             b1.Property<decimal>("Amount")
                                 .HasPrecision(18, 6)
-                                .HasColumnType("decimal(18,6)")
+                                .HasColumnType("DECIMAL(18,6)")
                                 .HasColumnName("BasePricePerYear");
 
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
                                 .IsUnicode(false)
-                                .HasColumnType("char(3)")
+                                .HasColumnType("CHAR(3)")
                                 .HasColumnName("BasePricePerYearCurrency")
                                 .IsFixedLength();
                         });
@@ -292,14 +292,14 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
 
                             b1.Property<decimal>("Amount")
                                 .HasPrecision(18, 6)
-                                .HasColumnType("decimal(18,6)")
+                                .HasColumnType("DECIMAL(18,6)")
                                 .HasColumnName("EnergyPricePerKwh");
 
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
                                 .IsUnicode(false)
-                                .HasColumnType("char(3)")
+                                .HasColumnType("CHAR(3)")
                                 .HasColumnName("EnergyPricePerKwhCurrency")
                                 .IsFixedLength();
                         });
@@ -313,22 +313,22 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
-                    b.Property<TimeOnly>("From")
-                        .HasColumnType("time")
+                    b.Property<TimeSpan>("From")
+                        .HasColumnType("INTERVAL DAY(0) TO SECOND(0)")
                         .HasColumnName("StartTime");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("NVARCHAR2(20)");
 
                     b.Property<Guid>("TariffId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("RAW(16)");
 
-                    b.Property<TimeOnly>("To")
-                        .HasColumnType("time")
+                    b.Property<TimeSpan>("To")
+                        .HasColumnType("INTERVAL DAY(0) TO SECOND(0)")
                         .HasColumnName("EndTime");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "EnergyPricePerKwh", "EnergyBillingEngine.Domain.TimeOfUseBand.EnergyPricePerKwh#Money", b1 =>
@@ -337,14 +337,14 @@ namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
 
                             b1.Property<decimal>("Amount")
                                 .HasPrecision(18, 6)
-                                .HasColumnType("decimal(18,6)")
+                                .HasColumnType("DECIMAL(18,6)")
                                 .HasColumnName("EnergyPricePerKwh");
 
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
                                 .IsUnicode(false)
-                                .HasColumnType("char(3)")
+                                .HasColumnType("CHAR(3)")
                                 .HasColumnName("EnergyPricePerKwhCurrency")
                                 .IsFixedLength();
                         });

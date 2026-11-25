@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace EnergyBillingEngine.Infrastructure.Persistence.Migrations
+namespace EnergyBillingEngine.Migrations.SqlServer.Migrations
 {
     [DbContext(typeof(BillingDbContext))]
     [Migration("20261125115515_InitialSchema")]

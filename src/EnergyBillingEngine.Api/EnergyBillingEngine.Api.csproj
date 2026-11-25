@@ -17,6 +17,8 @@
   <ItemGroup>
     <ProjectReference Include="..\EnergyBillingEngine.Application\EnergyBillingEngine.Application.csproj" />
     <ProjectReference Include="..\EnergyBillingEngine.Infrastructure\EnergyBillingEngine.Infrastructure.csproj" />
+    <ProjectReference Include="..\EnergyBillingEngine.Migrations.SqlServer\EnergyBillingEngine.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\EnergyBillingEngine.Migrations.Oracle\EnergyBillingEngine.Migrations.Oracle.csproj" />
   </ItemGroup>
 
 </Project>

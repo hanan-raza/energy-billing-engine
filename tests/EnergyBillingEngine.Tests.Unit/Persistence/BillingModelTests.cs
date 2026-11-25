@@ -9,25 +9,44 @@ using Shouldly;
 namespace EnergyBillingEngine.Tests.Unit.Persistence;
 
 /// <summary>
-/// Checks the relational model without a database: building the model never opens a connection.
-/// The decimal scales matter because SQL Server rounds silently to the column's scale.
+/// Checks the relational model of each provider without a database: building the model never opens a connection.
+/// The decimal scales matter because SQL Server and Oracle both round silently to the column's scale.
 /// </summary>
-public sealed class BillingModelTests : IDisposable
+public abstract class BillingModelTests : IDisposable
 {
-    private readonly BillingDbContext _context = new(
-        new DbContextOptionsBuilder<BillingDbContext>()
-            .UseBillingStore("Server=model-only;Database=model-only")
-            .Options);
+    private readonly BillingDbContext _context;
+
+    protected BillingModelTests(DatabaseProvider provider, string connectionString)
+    {
+        _context = new BillingDbContext(
+            new DbContextOptionsBuilder<BillingDbContext>().UseBillingStore(provider, connectionString).Options);
+    }
+
+    /// <summary>Store type of a decimal column with 18 digits and the given scale.</summary>
+    protected abstract string DecimalType(int scale);
+
+    /// <summary>Store type of a fixed-length, non-Unicode text column.</summary>
+    protected abstract string FixedText(int length);
+
+    /// <summary>Store type of a calendar day.</summary>
+    protected abstract string DateType { get; }
+
+    /// <summary>Start of the store type of a variable-length, non-Unicode text column.</summary>
+    protected abstract string VariableTextPrefix { get; }
 
     // The runtime model drops annotations such as column types; the design-time model keeps them.
     private IRelationalModel Model => _context.GetService<IDesignTimeModel>().Model.GetRelationalModel();
 
-    public void Dispose() => _context.Dispose();
+    public void Dispose()
+    {
+        _context.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     [Fact]
     public void The_migrations_match_the_model()
     {
-        // Fails when an entity or configuration changed without `dotnet ef migrations add`.
+        // Fails when an entity or configuration changed without `dotnet ef migrations add` for this provider.
         _context.Database.HasPendingModelChanges().ShouldBeFalse();
     }
 
@@ -39,19 +58,19 @@ public sealed class BillingModelTests : IDisposable
     [InlineData("InvoiceLines", "UnitPrice")]
     public void Prices_keep_six_decimal_places(string table, string column)
     {
-        Column(table, column).ShouldBe($"decimal(18,{Precision.PriceDecimals})");
+        Column(table, column).ShouldBe(DecimalType(Precision.PriceDecimals));
     }
 
     [Fact]
     public void Line_amounts_are_stored_in_cents()
     {
-        Column("InvoiceLines", "Amount").ShouldBe("decimal(18,2)");
+        Column("InvoiceLines", "Amount").ShouldBe(DecimalType(2));
     }
 
     [Fact]
     public void Quantities_keep_the_five_places_of_meter_data()
     {
-        Column("InvoiceLines", "Quantity").ShouldBe("decimal(18,5)");
+        Column("InvoiceLines", "Quantity").ShouldBe(DecimalType(5));
     }
 
     [Theory]
@@ -60,7 +79,7 @@ public sealed class BillingModelTests : IDisposable
     [InlineData("Invoices", "Currency")]
     public void Currencies_are_three_fixed_characters(string table, string column)
     {
-        Column(table, column).ShouldBe("char(3)");
+        Column(table, column).ShouldBe(FixedText(3));
     }
 
     [Theory]
@@ -69,15 +88,15 @@ public sealed class BillingModelTests : IDisposable
     [InlineData("Invoices", "PeriodStart")]
     [InlineData("Invoices", "PeriodEnd")]
     [InlineData("Levies", "ValidFrom")]
-    public void Contract_and_billing_days_are_dates_not_instants(string table, string column)
+    public void Contract_and_billing_days_are_dates_not_instants_or_text(string table, string column)
     {
-        Column(table, column).ShouldBe("date");
+        Column(table, column).ShouldBe(DateType);
     }
 
     [Fact]
     public void The_market_location_id_is_exactly_eleven_characters()
     {
-        Column("Contracts", "MarketLocationId").ShouldBe("char(11)");
+        Column("Contracts", "MarketLocationId").ShouldBe(FixedText(11));
     }
 
     [Theory]
@@ -85,7 +104,7 @@ public sealed class BillingModelTests : IDisposable
     [InlineData("InvoiceLines", "Type")]
     public void Enums_are_stored_as_readable_text(string table, string column)
     {
-        Column(table, column).ShouldStartWith("varchar(");
+        Column(table, column).ShouldStartWith(VariableTextPrefix);
     }
 
     [Theory]
@@ -105,6 +124,37 @@ public sealed class BillingModelTests : IDisposable
             .ShouldContain(i => i.IsUnique && i.Columns.Count == 2 && i.Columns[0].Name == "InvoiceId" && i.Columns[1].Name == "Position");
     }
 
-    private string Column(string table, string column) =>
+    protected string Column(string table, string column) =>
         Model.Tables.Single(t => t.Name == table).Columns.Single(c => c.Name == column).StoreType;
+}
+
+public sealed class SqlServerBillingModelTests() : BillingModelTests(DatabaseProvider.SqlServer, "Server=model-only;Database=model-only")
+{
+    protected override string DecimalType(int scale) => $"decimal(18,{scale})";
+
+    protected override string FixedText(int length) => $"char({length})";
+
+    protected override string DateType => "date";
+
+    protected override string VariableTextPrefix => "varchar(";
+}
+
+public sealed class OracleBillingModelTests() : BillingModelTests(DatabaseProvider.Oracle, "User Id=model;Password=model;Data Source=model-only")
+{
+    protected override string DecimalType(int scale) => $"DECIMAL(18,{scale})";
+
+    protected override string FixedText(int length) => $"CHAR({length})";
+
+    protected override string DateType => "DATE";
+
+    protected override string VariableTextPrefix => "VARCHAR2(";
+
+    // Oracle has no TIME type; a time of day is an interval since midnight.
+    [Theory]
+    [InlineData("StartTime")]
+    [InlineData("EndTime")]
+    public void Band_times_are_intervals_not_text(string column)
+    {
+        Column("TariffTimeOfUseBands", column).ShouldBe("INTERVAL DAY(0) TO SECOND(0)");
+    }
 }

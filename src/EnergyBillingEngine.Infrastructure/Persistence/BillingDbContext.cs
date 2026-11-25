@@ -1,4 +1,5 @@
 using EnergyBillingEngine.Domain;
+using EnergyBillingEngine.Infrastructure.Persistence.Conversions;
 using Microsoft.EntityFrameworkCore;
 
 namespace EnergyBillingEngine.Infrastructure.Persistence;
@@ -21,6 +22,15 @@ public sealed class BillingDbContext(DbContextOptions<BillingDbContext> options)
 
     /// <summary>Invoices (Rechnungen) with their lines.</summary>
     public DbSet<Invoice> Invoices => Set<Invoice>();
+
+    /// <summary>Adds the type mappings a provider lacks.</summary>
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        if (Database.IsOracle())
+        {
+            OracleConversions.Apply(configurationBuilder);
+        }
+    }
 
     /// <summary>Applies the <c>IEntityTypeConfiguration</c> classes of this assembly.</summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
