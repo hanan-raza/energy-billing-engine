@@ -6,9 +6,10 @@ public sealed class Contract
     /// <summary>Maximum length of <see cref="ContractNumber"/>.</summary>
     public const int ContractNumberMaxLength = 20;
 
-    internal Contract(string contractNumber, string marketLocationId, Tariff tariff, DateOnly startDate)
+    internal Contract(string contractNumber, string marketLocationId, Tariff tariff, DateOnly startDate, VatRate vatRate)
     {
         ArgumentNullException.ThrowIfNull(tariff);
+        ArgumentNullException.ThrowIfNull(vatRate);
         if (!Domain.MarketLocationId.IsValid(marketLocationId))
         {
             throw new ArgumentException($"'{marketLocationId}' is not a valid market location ID (MaLo-ID).", nameof(marketLocationId));
@@ -18,6 +19,7 @@ public sealed class Contract
         MarketLocationId = marketLocationId;
         Tariff = tariff;
         StartDate = startDate;
+        VatRate = vatRate;
     }
 
     private Contract()
@@ -44,6 +46,9 @@ public sealed class Contract
 
     /// <summary>First day of supply (Lieferbeginn).</summary>
     public DateOnly StartDate { get; private set; }
+
+    /// <summary>VAT rate of the invoices under this contract, e.g. 19 % standard or 7 % reduced.</summary>
+    public VatRate VatRate { get; private set; } = VatRate.Standard;
 
     /// <summary>Last day of supply (Lieferende), or <c>null</c> while the contract runs open-ended.</summary>
     public DateOnly? EndDate { get; private set; }

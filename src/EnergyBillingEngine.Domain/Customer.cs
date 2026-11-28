@@ -42,9 +42,10 @@ public sealed class Customer
     /// <param name="marketLocationId">The supplied market location (MaLo-ID, 11 digits with check digit).</param>
     /// <param name="tariff">The agreed tariff.</param>
     /// <param name="startDate">First day of supply (Lieferbeginn).</param>
+    /// <param name="vatRate">VAT rate applied to the invoices; <see cref="VatRate.Standard"/> if omitted.</param>
     /// <exception cref="ArgumentException">The contract number or MaLo-ID is invalid.</exception>
     /// <exception cref="InvalidOperationException">The market location is already supplied under another contract of this customer on or after <paramref name="startDate"/>.</exception>
-    public Contract SignContract(string contractNumber, string marketLocationId, Tariff tariff, DateOnly startDate)
+    public Contract SignContract(string contractNumber, string marketLocationId, Tariff tariff, DateOnly startDate, VatRate? vatRate = null)
     {
         // A market location has exactly one supplier contract at a time; two overlapping contracts
         // would bill the same kWh twice.
@@ -56,7 +57,7 @@ public sealed class Customer
                 $"Market location {marketLocationId} is already supplied under contract {overlapping.ContractNumber} on {startDate:yyyy-MM-dd}.");
         }
 
-        var contract = new Contract(contractNumber, marketLocationId, tariff, startDate);
+        var contract = new Contract(contractNumber, marketLocationId, tariff, startDate, vatRate ?? VatRate.Standard);
         _contracts.Add(contract);
         return contract;
     }

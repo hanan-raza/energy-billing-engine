@@ -19,6 +19,16 @@ public sealed class ContractTests
         contract.MarketLocationId.ShouldBe(MaLo);
         contract.Tariff.ShouldBeSameAs(Basic);
         contract.EndDate.ShouldBeNull();
+        contract.VatRate.ShouldBe(VatRate.Standard);
+    }
+
+    [Fact]
+    public void A_contract_can_carry_the_reduced_vat_rate()
+    {
+        var contract = new Customer("K-1001", "Erika Mustermann")
+            .SignContract("V-2001", MaLo, Basic, new DateOnly(2026, 3, 1), VatRate.Reduced);
+
+        contract.VatRate.ShouldBe(VatRate.Reduced);
     }
 
     [Theory]

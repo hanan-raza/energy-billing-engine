@@ -19,6 +19,12 @@ internal sealed class ContractConfiguration : IEntityTypeConfiguration<Contract>
             .IsFixedLength()
             .IsUnicode(false);
 
+        // Stored as the plain percentage (19.00), so reports and hand-written SQL can read it.
+        builder.Property(c => c.VatRate)
+            .HasConversion(rate => rate.Percent, percent => new VatRate(percent))
+            .HasColumnName("VatRatePercent")
+            .HasPrecision(5, VatRate.PercentDecimals);
+
         // "Which contract supplies this MaLo on day X" is the lookup of every billing run.
         builder.HasIndex(c => new { c.MarketLocationId, c.StartDate });
 

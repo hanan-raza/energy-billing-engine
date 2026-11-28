@@ -66,7 +66,7 @@ public abstract class PersistenceRoundTripTests(DatabaseFixture database) : Inte
         var tariff = new Tariff("Night saver", Money.Eur(120m), Money.Eur(0.324517m));
         tariff.AddTimeOfUseBand("NT", new TimeOnly(22, 0), new TimeOnly(6, 0), Money.Eur(0.22m));
         var customer = new Customer(UniqueKey("K-"), "Erika Mustermann");
-        var contract = customer.SignContract(UniqueKey("V-"), "51238696781", tariff, new DateOnly(2026, 3, 1));
+        var contract = customer.SignContract(UniqueKey("V-"), "51238696781", tariff, new DateOnly(2026, 3, 1), VatRate.Reduced);
         var invoice = new Invoice(UniqueKey("R-"), contract, BillingPeriod.Month(2026, 3));
         invoice.AddLine(InvoiceLineType.Energy, "Energy", 312.457m, "kWh", Money.Eur(0.324517m));
         invoice.AddLine(InvoiceLineType.BasePrice, "Base price", 31m, "days", Money.Eur(0.328767m));
@@ -87,6 +87,7 @@ public abstract class PersistenceRoundTripTests(DatabaseFixture database) : Inte
         loaded.Contract.StartDate.ShouldBe(new DateOnly(2026, 3, 1));
         loaded.Contract.EndDate.ShouldBeNull();
         loaded.Contract.MarketLocationId.ShouldBe("51238696781");
+        loaded.Contract.VatRate.ShouldBe(VatRate.Reduced);
 
         // All six price decimals come back; a smaller scale would change the line amounts.
         loaded.Lines.Select(l => (l.Position, l.Quantity, l.UnitPrice, l.Amount)).ShouldBe(

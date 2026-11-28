@@ -4,6 +4,8 @@ using EnergyBillingEngine.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Shouldly;
 
 namespace EnergyBillingEngine.Tests.Unit.Persistence;
@@ -48,6 +50,24 @@ public abstract class BillingModelTests : IDisposable
     {
         // Fails when an entity or configuration changed without `dotnet ef migrations add` for this provider.
         _context.Database.HasPendingModelChanges().ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Contracts_that_existed_before_the_vat_column_get_the_standard_rate()
+    {
+        // EF proposes 0 for a new non-null column, which would bill existing contracts without VAT.
+        var migrations = _context.GetService<IMigrationsAssembly>();
+        var type = migrations.Migrations.Single(m => m.Key.EndsWith("_AddContractVatRate", StringComparison.Ordinal)).Value;
+        var migration = migrations.CreateMigration(type, _context.Database.ProviderName!);
+
+        migration.UpOperations.OfType<AddColumnOperation>().Single(o => o.Name == "VatRatePercent")
+            .DefaultValue.ShouldBe(VatRate.Standard.Percent);
+    }
+
+    [Fact]
+    public void The_vat_rate_is_stored_as_a_percentage_with_two_decimals()
+    {
+        Column("Contracts", "VatRatePercent").ToUpperInvariant().ShouldBe("DECIMAL(5,2)");
     }
 
     [Theory]

@@ -54,6 +54,11 @@ namespace EnergyBillingEngine.Migrations.SqlServer.Migrations
                     b.Property<Guid>("TariffId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal>("VatRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("VatRatePercent");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ContractNumber")

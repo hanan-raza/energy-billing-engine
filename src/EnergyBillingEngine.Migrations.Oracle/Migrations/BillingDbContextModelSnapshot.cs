@@ -54,6 +54,11 @@ namespace EnergyBillingEngine.Migrations.Oracle.Migrations
                     b.Property<Guid>("TariffId")
                         .HasColumnType("RAW(16)");
 
+                    b.Property<decimal>("VatRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("DECIMAL(5,2)")
+                        .HasColumnName("VatRatePercent");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ContractNumber")
