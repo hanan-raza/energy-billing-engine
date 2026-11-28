@@ -25,12 +25,14 @@ Built:
 - `Money` value object: `decimal` + ISO 4217 currency, refuses to mix currencies, commercial rounding to cents
 - Precision rules shared by domain and database: prices 6 decimals, quantities 5, amounts 2; values with more places are refused instead of silently rounded
 - Pro-rata period splitter: a billing period is split at every tariff change (a change on the 15th gives days 1–14 and 15–31), with exact Europe/Berlin start and end instants for each part
+- Levy calculator: one itemised line per levy type (network fee, concession fee, electricity tax, CHP and offshore surcharges); when a rate changes inside the period, the consumption is shared out by days and still adds up to the metered kWh exactly
+- VAT engine: rate per contract (19 % standard or 7 % reduced, configurable), computed once on the net total and rounded commercially; credit notes round symmetrically
 - SQL Server and Oracle, selected by configuration, each with its own EF Core migrations (`Money` and `BillingPeriod` as complex types)
 - Integration tests against both databases in real containers (Testcontainers)
 
 Planned (see *Roadmap*):
 - Pro-rata amounts per part (base price per day, consumption per part) and contract start/end within a period
-- Meter reading based and interval (15-min) based billing with VAT
+- Meter reading based and interval (15-min) based billing
 - Invoice generation as PDF (QuestPDF community license) and a cancellation (Storno) flow
 - Golden-master invoice tests against both databases
 - "Explain my bill": every invoice line exposes a traceable calculation tree (inputs → formula → result)
@@ -62,6 +64,7 @@ graph TD
     B --- B2[Tariff / TimeOfUseBand]
     B --- B3[Levy]
     B --- B4[Invoice / InvoiceLine]
+    B --- B6[PeriodSplitter / LevyCalculator / VatEngine]
     B --- B5[Money / BillingPeriod / Precision]
 ```
 
@@ -70,7 +73,7 @@ graph TD
 - **Migrations.SqlServer / Migrations.Oracle** hold each provider's migrations. Migrations are provider-specific SQL, so one set cannot serve both databases.
 - **Api** only wires up the database so far.
 
-Planned billing pipeline: `BillingService` → `PeriodSplitter` (pro rata) → consumption lookup → `LevyCalculator` → `VatEngine` → `Invoice` + calculation tree → PDF renderer / explain API.
+Planned billing pipeline (the steps in bold exist): `BillingService` → **`PeriodSplitter`** (pro rata) → consumption lookup → **`LevyCalculator`** → **`VatEngine`** → `Invoice` + calculation tree → PDF renderer / explain API.
 
 ---
 
@@ -133,12 +136,15 @@ dotnet test --filter Category!=Integration     # unit tests only
 dotnet test --filter Database=Oracle           # integration tests of one database
 ```
 
-Unit tests (169, no database needed):
+Unit tests (207, no database needed):
 - `Money`: exact decimal arithmetic, currency mismatch refused, commercial vs. banker's rounding, why invoices round per line (three lines of 0.005 EUR print 0.03, not 0.02)
 - `BillingPeriod`: inclusive days, leap years, months with a clock change still count calendar days
 - `Tariff`: night band across midnight, adjacent vs. overlapping bands, currency and precision checks
 - `Contract`: active days inclusive, no second contract for the same MaLo while one runs, follow-up from the next day
 - `PeriodSplitter`: one part without changes; a change on the 15th gives 14 + 17 days; March 2026 has 31 days but 743 hours and October 745; a change on the spring clock-change day starts at local midnight; changes in any order; days without a tariff and two tariffs on one day are refused; 500 generated histories are checked day by day against a simple lookup
+- `ProRata`: shares add up to the total exactly (1000 kWh by 31/28/31 days), never negative, checked on 1,000 generated cases
+- `LevyCalculator`: 3,500 kWh give exact amounts per levy (sum 497.60 EUR); 23.525 rounds to 23.53; a rate change on 1 January splits the kWh by days; zero rates print no line; gaps and overlapping rates in the configuration are refused
+- `VatEngine`: 497.66 EUR net gives 94.56 EUR VAT; 3.50 EUR at 7 % gives 0.25 (banker's rounding would give 0.24); three lines of 0.08 EUR give 0.05 EUR VAT, not 0.06; credit notes; a migration test checks that existing contracts are backfilled with 19 %, not 0 %
 - `GermanCalendar`: days of 23, 24 and 25 hours, winter and summer offsets
 - `Invoice`: line amounts rounded once, net total = sum of printed lines, prices/quantities with too many places refused, period must overlap the contract
 - Database model, for SQL Server and Oracle: column types (`decimal(18,6)` prices, `decimal(18,2)` amounts, `date`/`DATE` for days, `char(3)` currencies), unique business keys, and a check that each provider's migrations match the model
@@ -164,6 +170,8 @@ Recorded in `docs/adr/` as the billing logic grows (planned: dual database provi
 - **Refuse, don't round silently.** Prices with more than 6 decimals or quantities with more than 5 are rejected by the domain, because SQL Server would round them on insert and the stored line would no longer match its amount.
 - **Calendar days, not instants, for contracts and periods.** Contracts run "from 1 March"; the 23/25-hour clock-change days are one day each for pro-rata prices. Exact hours matter only for interval billing, so each part of a split period also carries its start and end as `DateTimeOffset` in Europe/Berlin. Counting days from those (743 h / 24 = 30.96 days for March) would bill the wrong amount.
 - **A period must start with a tariff in effect.** The splitter refuses days without a tariff instead of filling them with the next one, because those days have no agreed price.
+- **VAT on the total, once.** VAT is computed on the printed net total per rate, not per line, so the invoice shows one VAT amount that matches its own net total. Rounding per line can differ by a cent per line.
+- **Levy rates must cover every day.** A gap or an overlap in the rate table is a configuration error and fails the calculation; billing with a missing rate would undercharge silently.
 - **One migrations assembly per provider.** EF Core migrations contain provider-specific SQL. `UseBillingStore` points each provider at its own assembly, and a model test per provider fails if a change lacks a migration for either database.
 - **Explicit date and time types on Oracle.** Oracle's EF Core provider has no native mapping for `DateOnly` and `TimeOnly` and would store them as `NVARCHAR2` text. They are converted to `DATE` and `INTERVAL DAY TO SECOND` instead, and a test pins the column types.
 - **EF-generated sequential GUIDs as keys.** SQL Server orders `uniqueidentifier` by its last bytes, so sequential GUIDs keep inserts at the end of the clustered index; time-ordered UUIDv7 values would not.
@@ -172,7 +180,7 @@ Recorded in `docs/adr/` as the billing logic grows (planned: dual database provi
 
 ## Roadmap / Next Steps
 
-- Pro-rata amounts per part, levy calculator, VAT engine, billing service
+- Pro-rata amounts per part, billing service that assembles the invoice
 - Calculation tree and "explain my bill" API
 - QuestPDF invoices and Storno flow
 - Golden-master tests
@@ -183,4 +191,4 @@ Recorded in `docs/adr/` as the billing logic grows (planned: dual database provi
 
 ## Kurzfassung auf Deutsch
 
-Diese Billing-Engine berechnet Energierechnungen für Endkunden nach den typischen Strukturen des deutschen Energiemarkts: Grundpreis, Arbeitspreis, Netzentgelt, Konzessionsabgabe, Steuern und Umlagen. Das Projekt ist im Aufbau; vorhanden sind das Domänenmodell (Kunde, Liefervertrag, Tarif mit HT/NT-Zeitzonen, Umlagen, Rechnung) und das Datenbankschema für SQL Server und Oracle, per Konfiguration wählbar. Geldbeträge sind ein eigener Werttyp mit Währung, der Währungen nicht vermischt und kaufmännisch auf Cent rundet, und zwar einmal pro Rechnungsposition. Preise mit mehr als sechs Nachkommastellen werden abgelehnt statt still von der Datenbank gerundet. Ein Abrechnungszeitraum wird bei jeder Preisänderung tagesgenau in Teilzeiträume zerlegt, auch über die Zeitumstellung hinweg. Als Nächstes folgen die Pro-rata-Beträge, Mehrwertsteuer, PDF-Rechnungen mit QuestPDF, Stornos und ein rückverfolgbarer Berechnungsbaum pro Rechnungsposition. Integrationstests laufen über Testcontainers gegen echte SQL-Server- und Oracle-Container und prüfen, dass beide Datenbanken dieselben Werte zurückliefern.
+Diese Billing-Engine berechnet Energierechnungen für Endkunden nach den typischen Strukturen des deutschen Energiemarkts: Grundpreis, Arbeitspreis, Netzentgelt, Konzessionsabgabe, Steuern und Umlagen. Das Projekt ist im Aufbau; vorhanden sind das Domänenmodell (Kunde, Liefervertrag, Tarif mit HT/NT-Zeitzonen, Umlagen, Rechnung) und das Datenbankschema für SQL Server und Oracle, per Konfiguration wählbar. Geldbeträge sind ein eigener Werttyp mit Währung, der Währungen nicht vermischt und kaufmännisch auf Cent rundet, und zwar einmal pro Rechnungsposition. Preise mit mehr als sechs Nachkommastellen werden abgelehnt statt still von der Datenbank gerundet. Ein Abrechnungszeitraum wird bei jeder Preisänderung tagesgenau in Teilzeiträume zerlegt, auch über die Zeitumstellung hinweg. Umlagen und Abgaben werden einzeln ausgewiesen, und die Mehrwertsteuer (19 % oder 7 %, je Vertrag) wird einmal auf die Nettosumme berechnet. Als Nächstes folgen der Abrechnungsservice, PDF-Rechnungen mit QuestPDF, Stornos und ein rückverfolgbarer Berechnungsbaum pro Rechnungsposition. Integrationstests laufen über Testcontainers gegen echte SQL-Server- und Oracle-Container und prüfen, dass beide Datenbanken dieselben Werte zurückliefern.
